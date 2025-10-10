@@ -720,7 +720,9 @@ const createTwitterPostPayload = (postData: any, selectedPostType: string, media
           title: actualContent.trim(),
           media: mediaFiles.length > 0 ? mediaFiles.map(file => ({
             filename: file.name,
-            type: file.type,
+            // ✅ FIX: Convert the full MIME type to the simple type
+            type: file.type.startsWith('image/') ? 'image' : 
+                  file.type.startsWith('video/') ? 'video' : 'document',
             size: file.size
           })) : []
         };

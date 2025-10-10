@@ -6,9 +6,11 @@ import CreatorLayout from '@/Components/Creater/CreatorLayout';
 import { TwitterIntegrationWithSuspense } from "@/Components/LazyComponents";
 import { LinkedInIntegrationWithSuspense } from "@/Components/LazyComponents";
 import { YouTubeIntegrationWithSuspense } from "@/Components/LazyComponents";
+import { InstagramIntegrationWithSuspense } from "@/Components/LazyComponents";
 import type { TwitterIntegrationRef } from "@/Components/Twitter/TwitterIntegration";
 import type { LinkedInIntegrationRef } from "@/Components/LinkedIn/LinkedInIntegration";
 import type { YouTubeIntegrationRef } from "@/Components/YouTube/YouTubeIntegration";
+import type { InstagramIntegrationRef } from "@/Components/Instagram/InstagramIntegration";
 import { useRef } from "react";
 
 interface FormData {
@@ -53,6 +55,7 @@ function SettingsPageContent() {
   const twitterRef = useRef<TwitterIntegrationRef>(null);
   const linkedinRef = useRef<LinkedInIntegrationRef>(null);
   const youtubeRef = useRef<YouTubeIntegrationRef>(null);
+  const instagramRef = useRef<InstagramIntegrationRef>(null);
 
   const [formData, setFormData] = useState<FormData>({
     email: "john@example.com",
@@ -65,17 +68,19 @@ function SettingsPageContent() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Handle URL parameters for Twitter/LinkedIn/YouTube connection status
+  // Handle URL parameters for Twitter/LinkedIn/YouTube/Instagram connection status
   useEffect(() => {
     const twitterStatus = searchParams.get('twitter');
     const linkedinStatus = searchParams.get('linkedin');
     const youtubeStatus = searchParams.get('youtube');
+    const instagramStatus = searchParams.get('instagram');
     const message = searchParams.get('message');
     
     console.log('🔍 Settings page useEffect triggered with params:', {
       twitterStatus,
       linkedinStatus,
       youtubeStatus,
+      instagramStatus,
       message,
       currentUrl: window.location.href
     });
@@ -131,6 +136,22 @@ function SettingsPageContent() {
         window.history.replaceState({}, '', window.location.pathname);
         setNotification({ type: null, message: '' });
       }, 5000);
+    } else if (instagramStatus === 'success') {
+      setNotification({ type: 'success', message: 'Instagram account connected successfully!' });
+      // Trigger connection check for Instagram (slight delay to allow backend DB write)
+      setTimeout(() => {
+        instagramRef.current?.checkConnection();
+      }, 1500);
+      setTimeout(() => {
+        window.history.replaceState({}, '', window.location.pathname);
+        setNotification({ type: null, message: '' });
+      }, 5000);
+    } else if (instagramStatus === 'error') {
+      setNotification({ type: 'error', message: message ? decodeURIComponent(message) : 'Failed to connect Instagram account' });
+      setTimeout(() => {
+        window.history.replaceState({}, '', window.location.pathname);
+        setNotification({ type: null, message: '' });
+      }, 5000);
     }
   }, [searchParams]);
 
@@ -150,9 +171,10 @@ function SettingsPageContent() {
     const twitterStatus = searchParams.get('twitter');
     const linkedinStatus = searchParams.get('linkedin');
     const youtubeStatus = searchParams.get('youtube');
+    const instagramStatus = searchParams.get('instagram');
 
     // Only run if logged in and no immediate callback status is being handled
-    if (tokenPresent && !twitterStatus && !linkedinStatus && !youtubeStatus) {
+    if (tokenPresent && !twitterStatus && !linkedinStatus && !youtubeStatus && !instagramStatus) {
       // Stagger checks to reduce burst calls
       const timers: number[] = [];
       timers.push(window.setTimeout(() => {
@@ -165,6 +187,10 @@ function SettingsPageContent() {
       timers.push(window.setTimeout(() => {
         linkedinRef.current?.checkConnection?.();
       }, 1400));
+      // Instagram connection check
+      timers.push(window.setTimeout(() => {
+        instagramRef.current?.checkConnection?.();
+      }, 1900));
 
       return () => {
         timers.forEach((id) => clearTimeout(id));
@@ -366,20 +392,8 @@ function SettingsPageContent() {
           <p className="text-sm text-gray-600 mb-6">Connect other accounts with external providers to access your content</p>
           
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-200 rounded-lg gap-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                  <span className="text-red-600 font-medium text-sm">G</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Instagram</p>
-                  <p className="text-sm text-gray-500">@john_doe</p>
-                </div>
-              </div>
-              <button className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors">
-                Disconnect
-              </button>
-            </div>
+          <InstagramIntegrationWithSuspense ref={instagramRef} />
+
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-200 rounded-lg gap-3">
               <div className="flex items-center space-x-3">
@@ -401,6 +415,7 @@ function SettingsPageContent() {
             <LinkedInIntegrationWithSuspense ref={linkedinRef} />
 
             <YouTubeIntegrationWithSuspense ref={youtubeRef} />
+
           </div>
         </section>
 
